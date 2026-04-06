@@ -28,17 +28,16 @@ function M.setup(opts)
     -- Define signs
     signs.define_signs()
 
-    -- Set up autocommand to refresh signs
+    -- Set up autocommand to refresh signs in current buffer only
     local group = vim.api.nvim_create_augroup("TodoNvim", { clear = true })
+
     vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "TextChanged", "InsertLeave" }, {
         group = group,
-        callback = function()
-            signs.refresh()
+        callback = function(ev)
+            -- Only refresh signs for the current buffer
+            signs.refresh_buffer(ev.buf)
         end,
     })
-
-    -- Initial refresh
-    signs.refresh()
 end
 
 -- Main command to show TODOs

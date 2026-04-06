@@ -1,3 +1,5 @@
+local config = require("todo-nvim.config")
+
 local M = {}
 
 -- Namespace for signs
@@ -11,49 +13,54 @@ function M.define_signs()
     })
 end
 
--- Place signs for todos
-function M.place_signs(todos)
-    -- Clear all existing signs
-    M.clear_signs()
+-- Search for TODOs in a specific buffer
+local function search_buffer_todos(bufnr)
+    local todos = {}
+    local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+    local filepath = vim.api.nvim_buf_get_name(bufnr)
 
-    -- Group todos by buffer
-    local buffers = {}
-    for _, todo in ipairs(todos) do
-        local bufnr = vim.fn.bufnr(todo.filepath)
+    if filepath == "" then
+        return todos
+    end
 
-        -- Only place signs if buffer is loaded
-        if bufnr ~= -1 then
-            if not buffers[bufnr] then
-                buffers[bufnr] = {}
+    for lnum, line in ipairs(lines) do
+        for _, keyword in ipairs(config.options.keywords) do
+            if line:find(keyword, 1, true) then
+                table.insert(todos, {
+                    filepath = filepath,
+                    lnum = lnum,
+                    text = vim.trim(line),
+                    keyword = keyword,
+                })
+                break -- Only add once per line even if multiple keywords match
             end
-            table.insert(buffers[bufnr], todo)
         end
     end
 
-    -- Place signs for each buffer
-    for bufnr, buffer_todos in pairs(buffers) do
-        for _, todo in ipairs(buffer_todos) do
-            vim.fn.sign_place(0, "todo-nvim", "TodoSign", bufnr, {
-                lnum = todo.lnum,
-                priority = 10,
-            })
-        end
+    return todos
+end
+
+-- Refresh signs for a specific buffer
+function M.refresh_buffer(bufnr)
+    bufnr = bufnr or vim.api.nvim_get_current_buf()
+
+    -- Skip if buffer is not loaded or valid
+    if not vim.api.nvim_buf_is_loaded(bufnr) then
+        return
     end
-end
 
--- Clear all signs
-function M.clear_signs()
-    vim.fn.sign_unplace("todo-nvim")
-end
+    -- Clear existing signs for this buffer
+    vim.fn.sign_unplace("todo-nvim", { buffer = bufnr })
 
--- Refresh signs (search and place)
-function M.refresh()
-    local search = require("todo-nvim.search")
-    search.search_todos(function(todos)
-        vim.schedule(function()
-            M.place_signs(todos)
-        end)
-    end)
+    -- Search and place signs
+    local todos = search_buffer_todos(bufnr)
+
+    for _, todo in ipairs(todos) do
+        vim.fn.sign_place(0, "todo-nvim", "TodoSign", bufnr, {
+            lnum = todo.lnum,
+            priority = 10,
+        })
+    end
 end
 
 return M
