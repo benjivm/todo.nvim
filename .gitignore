@@ -1,0 +1,10 @@
+*.log
+/.repro
+/.tests
+/build
+/debug
+/doc/tags
+foo.*
+node_modules
+tt.*
+.DS_Store
