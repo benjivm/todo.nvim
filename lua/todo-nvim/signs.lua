@@ -31,10 +31,10 @@ local function is_in_comment(bufnr, row, col)
     end
 
     local root = tree:root()
-    
+
     -- Get the node at the position
     local node = root:descendant_for_range(row, col, row, col)
-    
+
     -- Walk up the tree to check if we're in a comment
     while node do
         local node_type = node:type()
@@ -44,7 +44,7 @@ local function is_in_comment(bufnr, row, col)
         end
         node = node:parent()
     end
-    
+
     return false
 end
 
@@ -100,7 +100,7 @@ function M.refresh_buffer(bufnr)
 
     for _, todo in ipairs(todos) do
         local sign_name = "TodoSign_" .. todo.keyword
-        
+
         -- Place sign
         vim.fn.sign_place(0, "todo-nvim", sign_name, bufnr, {
             lnum = todo.lnum,
@@ -113,14 +113,7 @@ function M.refresh_buffer(bufnr)
             local start_col, end_col = line_text:find(todo.keyword, 1, true)
             if start_col then
                 local hl_group = config.options.highlights[todo.keyword] or "TodoSignTODO"
-                vim.api.nvim_buf_add_highlight(
-                    bufnr,
-                    M.namespace,
-                    hl_group,
-                    todo.lnum - 1,
-                    start_col - 1,
-                    end_col
-                )
+                vim.api.nvim_buf_add_highlight(bufnr, M.namespace, hl_group, todo.lnum - 1, start_col - 1, end_col)
             end
         end
     end
