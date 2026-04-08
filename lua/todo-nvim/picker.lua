@@ -24,7 +24,7 @@ function M.show(todos)
     -- Create picker with snacks
     snacks.picker.pick({
         source = "todo",
-        title = "Callouts",
+        title = "To-do List",
         items = items,
         format = function(item)
             local file_path = vim.fn.fnamemodify(item.file, ":.")

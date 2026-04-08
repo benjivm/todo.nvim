@@ -16,6 +16,38 @@ function M.define_signs()
     end
 end
 
+-- Check if a position is inside a comment using treesitter
+local function is_in_comment(bufnr, row, col)
+    -- Try to get treesitter parser for this buffer
+    local ok, parser = pcall(vim.treesitter.get_parser, bufnr)
+    if not ok or not parser then
+        return true -- If no treesitter, assume it's a comment (fallback to old behavior)
+    end
+
+    -- Get the syntax tree
+    local tree = parser:parse()[1]
+    if not tree then
+        return true
+    end
+
+    local root = tree:root()
+    
+    -- Get the node at the position
+    local node = root:descendant_for_range(row, col, row, col)
+    
+    -- Walk up the tree to check if we're in a comment
+    while node do
+        local node_type = node:type()
+        -- Check for common comment node types across different languages
+        if node_type:match("comment") or node_type:match("doc") then
+            return true
+        end
+        node = node:parent()
+    end
+    
+    return false
+end
+
 -- Search for TODOs in a specific buffer
 local function search_buffer_todos(bufnr)
     local todos = {}
@@ -28,14 +60,19 @@ local function search_buffer_todos(bufnr)
 
     for lnum, line in ipairs(lines) do
         for _, keyword in ipairs(config.options.keywords) do
-            if line:find(keyword, 1, true) then
-                table.insert(todos, {
-                    filepath = filepath,
-                    lnum = lnum,
-                    text = vim.trim(line),
-                    keyword = keyword,
-                })
-                break -- Only add once per line even if multiple keywords match
+            local start_col, end_col = line:find(keyword, 1, true)
+            if start_col then
+                -- Check if the keyword is in a comment using treesitter
+                -- Convert to 0-indexed for treesitter
+                if is_in_comment(bufnr, lnum - 1, start_col - 1) then
+                    table.insert(todos, {
+                        filepath = filepath,
+                        lnum = lnum,
+                        text = vim.trim(line),
+                        keyword = keyword,
+                    })
+                    break -- Only add once per line even if multiple keywords match
+                end
             end
         end
     end
