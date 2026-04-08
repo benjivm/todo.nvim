@@ -8,6 +8,8 @@ function M.show(todos)
         return
     end
 
+    local config = require("todo-nvim.config")
+
     -- Convert todos to snacks picker items format
     local items = {}
     for _, todo in ipairs(todos) do
@@ -22,10 +24,12 @@ function M.show(todos)
     -- Create picker with snacks
     snacks.picker.pick({
         source = "todo",
-        title = "TODOs",
+        title = "Callouts",
         items = items,
         format = function(item)
             local file_path = vim.fn.fnamemodify(item.file, ":.")
+            -- Get the highlight group for this keyword
+            local hl_group = config.options.highlights[item.keyword] or "TodoSignTODO"
 
             return {
                 { file_path .. ":", "Comment" },
@@ -33,7 +37,7 @@ function M.show(todos)
                 { ":", "Comment" },
                 { tostring(item.pos[2]), "LineNr" },
                 { ": [", "Comment" },
-                { item.keyword, "TodoSignTODO" },
+                { item.keyword, hl_group },
                 { "] ", "Comment" },
                 { item.text, "Normal" },
             }

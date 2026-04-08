@@ -9,9 +9,17 @@ local M = {}
 function M.setup(opts)
     config.setup(opts)
 
-    -- Set up highlight group if it doesn't exist
+    -- Set up highlight groups if they don't exist
     local highlights = {
-        TodoSignTODO = { fg = "#7aa2f7", bold = true },
+        TodoSignTODO = { fg = "#7aa2f7", bold = true }, -- Blue
+        TodoSignFIXME = { fg = "#f7768e", bold = true }, -- Red
+        TodoSignBUG = { fg = "#db4b4b", bold = true }, -- Dark Red
+        TodoSignHACK = { fg = "#ff9e64", bold = true }, -- Orange
+        TodoSignWARNING = { fg = "#e0af68", bold = true }, -- Yellow
+        TodoSignNOTE = { fg = "#1abc9c", bold = true }, -- Cyan/Teal
+        TodoSignINFO = { fg = "#0db9d7", bold = true }, -- Light Blue
+        TodoSignPERF = { fg = "#bb9af7", bold = true }, -- Purple
+        TodoSignXXX = { fg = "#f7768e", bold = true }, -- Red
     }
 
     for group, opts_tbl in pairs(highlights) do
@@ -22,7 +30,7 @@ function M.setup(opts)
 
     -- Set up keymap if configured
     if config.options.keymap then
-        vim.keymap.set("n", config.options.keymap, "<cmd>TodoPicker<cr>", { desc = "Find TODOs" })
+        vim.keymap.set("n", config.options.keymap, "<cmd>TodoPicker<cr>", { desc = "Find Callouts" })
     end
 
     -- Define signs
@@ -40,12 +48,12 @@ function M.setup(opts)
     })
 end
 
--- Main command to show TODOs
+-- Main command to show callouts
 function M.show()
     search.search_todos(function(todos)
         vim.schedule(function()
             if #todos == 0 then
-                vim.notify("No TODOs found", vim.log.levels.INFO)
+                vim.notify("No callouts found", vim.log.levels.INFO)
                 return
             end
 
