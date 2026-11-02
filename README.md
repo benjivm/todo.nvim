@@ -92,14 +92,9 @@ The highlight groups link to built-in groups (`Todo`, `DiagnosticError`, `Diagno
 
 Use `.gitignore` or ripgrep's `.ignore` file to exclude directories from search.
 
-## Migrating from the old config
+## Upgrading
 
-The config changed in a breaking way:
-
-- `keywords`, `highlights` and `signs` are now one `keywords` table. Spellings like `FIXME`, `WARNING`, `INFO` and `OPTIMIZE` are now `alt` names of `FIX`, `WARN`, `NOTE` and `PERF`.
-- The highlight groups are renamed from `TodoSign<NAME>` to `Todo<NAME>`, and link to built-in groups instead of fixed colours.
-- `keymap` is off by default. Set `keymap = "<leader>ft"` or use lazy.nvim's `keys`.
-- Neovim 0.10 is now required.
+The config changed in a breaking way: `keywords`, `highlights` and `signs` are now one `keywords` table, the highlight groups are renamed, the keymap is off by default, and Neovim 0.10 is required. See [UPGRADING.md](UPGRADING.md).
 
 ## Development
 
