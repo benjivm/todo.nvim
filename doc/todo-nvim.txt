@@ -1,0 +1,206 @@
+*todo-nvim.txt*  Find and highlight TODO comments
+
+==============================================================================
+CONTENTS                                                   *todo-nvim-contents*
+
+  1. Introduction .................................. |todo-nvim-intro|
+  2. Setup ......................................... |todo-nvim-setup|
+  3. Options ....................................... |todo-nvim-options|
+  4. Commands ...................................... |todo-nvim-commands|
+  5. API ........................................... |todo-nvim-api|
+  6. Highlights .................................... |todo-nvim-highlights|
+
+==============================================================================
+1. INTRODUCTION                                               *todo-nvim-intro*
+
+todo-nvim finds keywords like TODO, FIX and NOTE in comments. It shows a sign
+and highlights the keyword in open buffers, and searches the project with
+ripgrep for a picker, the quickfix list or the location list.
+
+A keyword only counts when it is inside a comment, using treesitter
+(including injected languages). Without a parser for the filetype, the text
+before the keyword must contain the 'commentstring' prefix. Keywords match on
+word boundaries and are case sensitive: DEBUG does not match BUG.
+
+Requirements:
+- Neovim 0.10 or later
+- ripgrep (`rg`) in $PATH
+- snacks.nvim (optional) for the picker; |vim.ui.select()| is used without it
+
+Run `:checkhealth todo-nvim` to check the setup.
+
+==============================================================================
+2. SETUP                                                      *todo-nvim-setup*
+
+                                                           *todo-nvim.setup()*
+setup({opts})
+    Applies {opts} (see |todo-nvim-options|), turns on signs and sets the
+    keymap. The commands work without calling setup(); signs need it.
+>lua
+    require("todo-nvim").setup({
+        keywords = {
+            IDEA = { icon = "?" },   -- add a keyword
+            HACK = false,            -- remove a default keyword
+        },
+    })
+<
+With lazy.nvim:
+>lua
+    {
+        "benjivm/todo.nvim",
+        dependencies = { "folke/snacks.nvim" }, -- optional
+        opts = {},
+        keys = {
+            { "<leader>ft", "<cmd>TodoPicker<cr>", desc = "Find todos" },
+            { "]t", function() require("todo-nvim").jump_next() end, desc = "Next todo" },
+            { "[t", function() require("todo-nvim").jump_prev() end, desc = "Previous todo" },
+        },
+    }
+<
+==============================================================================
+3. OPTIONS                                                  *todo-nvim-options*
+
+Defaults:
+>lua
+    {
+        keywords = {
+            TODO = { icon = "✓", hl = "TodoTODO", alt = { "@todo" } },
+            FIX  = { icon = "!", hl = "TodoFIX",  alt = { "FIXME" } },
+            BUG  = { icon = "✗", hl = "TodoBUG" },
+            HACK = { icon = "⚡", hl = "TodoHACK" },
+            WARN = { icon = "⚠", hl = "TodoWARN", alt = { "WARNING" } },
+            NOTE = { icon = "ℹ", hl = "TodoNOTE", alt = { "INFO" } },
+            PERF = { icon = "⏱", hl = "TodoPERF", alt = { "OPTIMIZE" } },
+            XXX  = { icon = "✗", hl = "TodoXXX" },
+        },
+        merge_keywords = true,
+        search_paths = { "." },
+        search_root = "cwd",
+        signs = true,
+        keymap = false,
+        debounce_ms = 150,
+        filter_comments = true,
+    }
+<
+                                                   *todo-nvim-opt-keywords*
+keywords ~
+    Table of keyword name to:
+    - `icon`  (string, required) sign text, at most 2 cells wide.
+    - `hl`    (string) highlight group for the sign and the keyword.
+              Defaults to "Todo" .. name, which links to `Todo`.
+    - `alt`   (string[]) other spellings that count as this keyword.
+    User keywords are merged into the defaults one field at a time, so
+    `TODO = { icon = "T" }` keeps the default `hl` and `alt`. Set a keyword
+    to `false` to remove it.
+
+                                             *todo-nvim-opt-merge_keywords*
+merge_keywords ~
+    When false, `keywords` replaces the default keywords entirely.
+
+                                               *todo-nvim-opt-search_paths*
+search_paths ~
+    Paths passed to rg, relative to the search root. A list you set replaces
+    the default list. Use `.gitignore` or an `.ignore` file to exclude files.
+
+                                                *todo-nvim-opt-search_root*
+search_root ~
+    "cwd" searches from the current directory. "git" searches from the git
+    root of the current buffer, falling back to the current directory.
+
+                                                      *todo-nvim-opt-signs*
+signs ~
+    Show signs and keyword highlights in buffers. See |:TodoSigns|.
+
+                                                     *todo-nvim-opt-keymap*
+keymap ~
+    A normal mode key for |:TodoPicker|, or false for none.
+
+                                                *todo-nvim-opt-debounce_ms*
+debounce_ms ~
+    Delay before signs update after a text change.
+
+                                            *todo-nvim-opt-filter_comments*
+filter_comments ~
+    When true, search results only include keywords inside comments. When
+    false, every rg match is kept (still one per line).
+
+==============================================================================
+4. COMMANDS                                                *todo-nvim-commands*
+
+The search commands take an optional list of keywords, separated by commas or
+spaces. Alternative names map to their keyword. Keywords complete with <Tab>.
+
+                                                                *:TodoPicker*
+:TodoPicker [{keywords}]
+    Show todos in the snacks.nvim picker, or |vim.ui.select()| without it.
+    Example: `:TodoPicker TODO,FIX`
+    In the snacks picker, <A-k> cycles through the keywords in the results.
+
+                                                              *:TodoQuickfix*
+:TodoQuickfix [{keywords}]
+    Put todos in the quickfix list and open it.
+
+                                                               *:TodoLocList*
+:TodoLocList [{keywords}]
+    Put todos in the current window's location list and open it.
+
+                                                                 *:TodoSigns*
+:TodoSigns [on|off|toggle]
+    Turn signs and keyword highlights on or off in all buffers. Without an
+    argument, toggles.
+
+==============================================================================
+5. API                                                          *todo-nvim-api*
+
+All functions are in `require("todo-nvim")`.
+
+setup({opts})                                          See |todo-nvim.setup()|.
+
+show({opts})                                               *todo-nvim.show()*
+quickfix({opts})                                       *todo-nvim.quickfix()*
+loclist({opts})                                         *todo-nvim.loclist()*
+    Like |:TodoPicker|, |:TodoQuickfix| and |:TodoLocList|. {opts} can have
+    `keywords`, a list of keyword names.
+
+collect({opts}, {callback})                             *todo-nvim.collect()*
+    Search for todos and call {callback}({todos}, {root}) with a list of
+    items sorted by file and line:
+    - `filepath` absolute path
+    - `lnum`, `col` 1-indexed line and byte column
+    - `text` the trimmed line
+    - `keyword` keyword name, e.g. "FIX"
+    - `word` the text that matched, e.g. "FIXME"
+
+jump_next()                                           *todo-nvim.jump_next()*
+jump_prev()                                           *todo-nvim.jump_prev()*
+    Move to the next or previous todo in the current buffer. Accepts a
+    count and wraps around with 'wrapscan'. Uses the signs, so they must be
+    on. Not mapped by default:
+>lua
+    vim.keymap.set("n", "]t", require("todo-nvim").jump_next, { desc = "Next todo" })
+    vim.keymap.set("n", "[t", require("todo-nvim").jump_prev, { desc = "Previous todo" })
+<
+In buffers over 10,000 lines, signs (and so jumps) only cover the visible
+lines, and update on scroll.
+
+==============================================================================
+6. HIGHLIGHTS                                            *todo-nvim-highlights*
+
+Each default keyword has a group that links to a built-in group. They are
+defined with `default = true`, so your colorscheme or config can override
+them, and are defined again after |ColorScheme|.
+
+  Group       Default link ~
+  TodoTODO    Todo
+  TodoFIX     DiagnosticError
+  TodoBUG     DiagnosticError
+  TodoHACK    DiagnosticWarn
+  TodoWARN    DiagnosticWarn
+  TodoNOTE    DiagnosticHint
+  TodoPERF    DiagnosticInfo
+  TodoXXX     DiagnosticError
+
+Custom keywords get a `Todo<NAME>` group linked to `Todo`, unless they set
+`hl`.
+
+ vim:tw=78:ts=8:ft=help:norl:
