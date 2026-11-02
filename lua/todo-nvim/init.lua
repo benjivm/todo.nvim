@@ -1,4 +1,5 @@
 local config = require("todo-nvim.config")
+local filter = require("todo-nvim.filter")
 local search = require("todo-nvim.search")
 local picker = require("todo-nvim.picker")
 local signs = require("todo-nvim.signs")
@@ -26,45 +27,28 @@ function M.jump_prev()
     signs.jump(-1)
 end
 
--- Check if a position is inside a comment using treesitter
-local function is_in_comment(filepath, row, col)
-    -- Get or load the buffer for this file
-    local bufnr = vim.fn.bufnr(filepath)
-
-    -- If buffer doesn't exist, try to load it
-    if bufnr == -1 then
-        bufnr = vim.fn.bufadd(filepath)
-        vim.fn.bufload(bufnr)
-    end
-
-    return require("todo-nvim.match").in_comment(bufnr, row - 1, col - 1)
-end
-
--- Filter todos to only include those in comments
-local function filter_todos_in_comments(todos)
-    local filtered = {}
-    for _, todo in ipairs(todos) do
-        if is_in_comment(todo.filepath, todo.lnum, todo.col) then
-            table.insert(filtered, todo)
-        end
-    end
-    return filtered
-end
-
--- Main command to show callouts
-function M.show()
-    search.search_todos(function(todos)
-        vim.schedule(function()
-            -- Filter to only show todos that are in comments
-            local filtered_todos = filter_todos_in_comments(todos)
-
-            if #filtered_todos == 0 then
-                vim.notify("No callouts found", vim.log.levels.INFO)
-                return
-            end
-
-            picker.show(filtered_todos)
+--- Search for todos, keeping only those in comments when `filter_comments`
+--- is set, and one per line.
+---@param opts? { keywords?: string[] } keyword names to limit the search to
+---@param callback fun(todos: todo.Item[], root: string)
+function M.collect(opts, callback)
+    opts = opts or {}
+    search.search_todos({ keywords = opts.keywords }, function(items, root)
+        filter.filter(items, { comments = config.get().filter_comments }, function(todos)
+            callback(todos, root)
         end)
+    end)
+end
+
+--- Show todos in the picker.
+---@param opts? { keywords?: string[] }
+function M.show(opts)
+    M.collect(opts, function(todos)
+        if #todos == 0 then
+            vim.notify("No todos found", vim.log.levels.INFO)
+            return
+        end
+        picker.show(todos)
     end)
 end
 

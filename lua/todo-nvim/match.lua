@@ -233,16 +233,16 @@ end
 
 --- Comment checker for a file's text, without creating a buffer.
 ---@param path string
----@param read fun(): string|nil returns the whole file, called only when a parser is available
+---@param read fun(): string|nil returns the whole file (nil to skip parsing), called only for languages with a parser
 ---@param get_line fun(row: integer): string|nil used by the 'commentstring' fallback
 ---@return todo.CommentChecker
 function M.file_checker(path, read, get_line)
     local ft = vim.filetype.match({ filename = path })
     local lang = get_lang(ft)
-    if lang then
-        local text = read()
-        local ok, parser = pcall(vim.treesitter.get_string_parser, text or "", lang, { error = false })
-        if text and ok and parser then
+    local text = lang and read()
+    if text then
+        local ok, parser = pcall(vim.treesitter.get_string_parser, text, lang, { error = false })
+        if ok and parser then
             parser:parse(true)
             return function(row, col)
                 return tree_in_comment(parser, row, col)
