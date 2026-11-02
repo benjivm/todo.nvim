@@ -5,31 +5,25 @@ local signs = require("todo-nvim.signs")
 
 local M = {}
 
--- Setup function
 function M.setup(opts)
     config.setup(opts)
 
-    -- Set up keymap if configured
-    if config.get().keymap then
-        vim.keymap.set("n", config.get().keymap, "<cmd>TodoPicker<cr>", { desc = "Find Callouts" })
+    local keymap = config.get().keymap
+    if keymap then
+        vim.keymap.set("n", keymap, "<cmd>TodoPicker<cr>", { desc = "Find todos" })
     end
 
-    -- Define signs
-    signs.define_signs()
+    signs.setup()
+end
 
-    -- Set up autocommand to refresh signs in current buffer only
-    local group = vim.api.nvim_create_augroup("TodoNvim", { clear = true })
+--- Jump to the next todo in the current buffer.
+function M.jump_next()
+    signs.jump(1)
+end
 
-    vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "TextChanged", "InsertLeave" }, {
-        group = group,
-        callback = function(ev)
-            -- Only refresh signs for the current buffer
-            -- Use vim.schedule to avoid fast event context issues
-            vim.schedule(function()
-                signs.refresh_buffer(ev.buf)
-            end)
-        end,
-    })
+--- Jump to the previous todo in the current buffer.
+function M.jump_prev()
+    signs.jump(-1)
 end
 
 -- Check if a position is inside a comment using treesitter
