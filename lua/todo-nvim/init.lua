@@ -43,34 +43,7 @@ local function is_in_comment(filepath, row, col)
         vim.fn.bufload(bufnr)
     end
 
-    -- Try to get treesitter parser for this buffer
-    local ok, parser = pcall(vim.treesitter.get_parser, bufnr, vim.filetype.match({ buf = bufnr }))
-    if not ok or not parser then
-        return true -- If no treesitter, assume it's valid (fallback)
-    end
-
-    -- Get the syntax tree
-    local trees = parser:parse()
-    if not trees or #trees == 0 then
-        return true
-    end
-
-    local root = trees[1]:root()
-
-    -- Get the node at the position (convert to 0-indexed)
-    local node = root:descendant_for_range(row - 1, col - 1, row - 1, col - 1)
-
-    -- Walk up the tree to check if we're in a comment
-    while node do
-        local node_type = node:type()
-        -- Check for common comment node types across different languages
-        if node_type:match("comment") or node_type:match("doc") then
-            return true
-        end
-        node = node:parent()
-    end
-
-    return false
+    return require("todo-nvim.match").in_comment(bufnr, row - 1, col - 1)
 end
 
 -- Filter todos to only include those in comments

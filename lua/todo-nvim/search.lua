@@ -1,47 +1,24 @@
 local config = require("todo-nvim.config")
+local match = require("todo-nvim.match")
 
 local M = {}
-
--- Escape special regex characters for ripgrep
-local function escape_regex(str)
-    return str:gsub("[%(%)%.%+%-%*%?%[%]%^%$%\\]", "\\%1")
-end
 
 -- Build ripgrep command to search for TODOs
 function M.build_rg_command()
     local opts = config.get()
-
-    -- Build keyword pattern with appropriate word boundaries
-    local patterns = {}
-    for keyword in pairs(config.get_lookup()) do
-        local escaped = escape_regex(keyword)
-        local pattern = escaped
-
-        -- Add word boundary at start if keyword starts with word character
-        if keyword:match("^%w") then
-            pattern = "\\b" .. pattern
-        end
-
-        -- Add word boundary at end if keyword ends with word character
-        if keyword:match("%w$") then
-            pattern = pattern .. "\\b"
-        end
-
-        table.insert(patterns, pattern)
-    end
-    local keyword_pattern = string.format("(%s)", table.concat(patterns, "|"))
+    local keyword_pattern = match.rg_pattern()
 
     local cmd = {
         "rg",
         "--vimgrep",
         "--no-heading",
-        "--smart-case",
+        "--case-sensitive",
         "--color=never",
         "--follow",
     }
 
     -- Add search pattern
-    table.insert(cmd, keyword_pattern)
+    vim.list_extend(cmd, { "-e", keyword_pattern, "--" })
 
     -- Add search paths
     vim.list_extend(cmd, opts.search_paths)
@@ -52,19 +29,22 @@ end
 -- Parse ripgrep output line
 function M.parse_rg_line(line)
     -- Format: filepath:line:col:text
-    local filepath, lnum, col, text = line:match("^(.+):(%d+):(%d+):(.*)$")
+    local filepath, lnum, col, text = line:match("^(.-):(%d+):(%d+):(.*)$")
 
     if not filepath then
         return nil
     end
 
-    -- Extract which keyword was matched
-    local keyword = nil
-    for kw in pairs(config.get_lookup()) do
-        if text:find(kw, 1, true) then
-            keyword = kw
+    -- Use the keyword at the column rg reports
+    local keyword
+    for _, m in ipairs(match.find(text)) do
+        if m.start_col == tonumber(col) - 1 then
+            keyword = m.keyword
             break
         end
+    end
+    if not keyword then
+        return nil
     end
 
     return {
@@ -72,7 +52,7 @@ function M.parse_rg_line(line)
         lnum = tonumber(lnum),
         col = tonumber(col),
         text = vim.trim(text),
-        keyword = keyword or "TODO",
+        keyword = keyword,
     }
 end
 

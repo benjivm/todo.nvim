@@ -1,4 +1,5 @@
 local config = require("todo-nvim.config")
+local match = require("todo-nvim.match")
 
 local M = {}
 
@@ -12,38 +13,6 @@ function M.define_signs()
     end
 end
 
--- Check if a position is inside a comment using treesitter
-local function is_in_comment(bufnr, row, col)
-    -- Try to get treesitter parser for this buffer
-    local ok, parser = pcall(vim.treesitter.get_parser, bufnr)
-    if not ok or not parser then
-        return true -- If no treesitter, assume it's a comment (fallback to old behavior)
-    end
-
-    -- Get the syntax tree
-    local tree = parser:parse()[1]
-    if not tree then
-        return true
-    end
-
-    local root = tree:root()
-
-    -- Get the node at the position
-    local node = root:descendant_for_range(row, col, row, col)
-
-    -- Walk up the tree to check if we're in a comment
-    while node do
-        local node_type = node:type()
-        -- Check for common comment node types across different languages
-        if node_type:match("comment") or node_type:match("doc") then
-            return true
-        end
-        node = node:parent()
-    end
-
-    return false
-end
-
 -- Search for TODOs in a specific buffer
 local function search_buffer_todos(bufnr)
     local todos = {}
@@ -54,21 +23,13 @@ local function search_buffer_todos(bufnr)
         return todos
     end
 
+    local in_comment = match.buf_checker(bufnr)
     for lnum, line in ipairs(lines) do
-        for keyword in pairs(config.get_lookup()) do
-            local start_col, end_col = line:find(keyword, 1, true)
-            if start_col then
-                -- Check if the keyword is in a comment using treesitter
-                -- Convert to 0-indexed for treesitter
-                if is_in_comment(bufnr, lnum - 1, start_col - 1) then
-                    table.insert(todos, {
-                        filepath = filepath,
-                        lnum = lnum,
-                        text = vim.trim(line),
-                        keyword = keyword,
-                    })
-                    break -- Only add once per line even if multiple keywords match
-                end
+        -- Leftmost keyword that is in a comment
+        for _, m in ipairs(match.find(line)) do
+            if in_comment(lnum - 1, m.start_col) then
+                table.insert(todos, { lnum = lnum, keyword = m.word, match = m })
+                break
             end
         end
     end
@@ -104,14 +65,15 @@ function M.refresh_buffer(bufnr)
         })
 
         -- Add syntax highlighting for the keyword in the buffer
-        local line_text = vim.api.nvim_buf_get_lines(bufnr, todo.lnum - 1, todo.lnum, false)[1]
-        if line_text then
-            local start_col, end_col = line_text:find(todo.keyword, 1, true)
-            if start_col then
-                local hl_group = config.get_lookup()[todo.keyword].hl
-                vim.api.nvim_buf_add_highlight(bufnr, M.namespace, hl_group, todo.lnum - 1, start_col - 1, end_col)
-            end
-        end
+        local hl_group = config.get_lookup()[todo.keyword].hl
+        vim.api.nvim_buf_add_highlight(
+            bufnr,
+            M.namespace,
+            hl_group,
+            todo.lnum - 1,
+            todo.match.start_col,
+            todo.match.end_col
+        )
     end
 end
 
