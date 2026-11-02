@@ -5,6 +5,7 @@ vim.opt.runtimepath:prepend(root)
 vim.opt.runtimepath:append(root .. "/.tests/mini.nvim")
 vim.opt.swapfile = false
 vim.opt.shadafile = "NONE"
+vim.opt.showmode = false
 
 vim.cmd("runtime plugin/todo-nvim.lua")
 

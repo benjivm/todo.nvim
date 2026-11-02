@@ -108,12 +108,15 @@ T["in_comment"]["lua"] = function()
         'local s = "FIX this"',
         "--[[ NOTE: block ]]",
         "local BUG = 1",
+        'local t = "-- HACK"',
     }, "lua")
     eq(comment_cols(bufnr), {
         { 1, "TODO", true },
         { 2, "FIX", false },
         { 3, "NOTE", true },
         { 4, "BUG", false },
+        -- The 'commentstring' fallback would get this wrong, so the parser was used
+        { 5, "HACK", false },
     })
 end
 

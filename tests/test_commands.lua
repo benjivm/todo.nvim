@@ -17,6 +17,7 @@ local T = MiniTest.new_set({
         end,
         post_case = function()
             vim.cmd.cd(cwd)
+            vim.cmd("stopinsert")
             vim.cmd("silent! cclose | silent! lclose | silent! %bwipeout!")
         end,
     },

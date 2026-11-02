@@ -197,7 +197,8 @@ local function get_lang(filetype)
     if not filetype or filetype == "" then
         return nil
     end
-    return vim.treesitter.language.get_lang(filetype)
+    -- Neovim 0.10 returns nil for filetypes without an explicit mapping
+    return vim.treesitter.language.get_lang(filetype) or filetype
 end
 
 --- Treesitter parser for a buffer, or nil.
