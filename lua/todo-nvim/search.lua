@@ -32,6 +32,10 @@ function M.build_rg_command(keywords)
         "--color=never",
         "--follow",
         "--case-sensitive",
+        -- --vimgrep prints the whole line for every match; keep minified and
+        -- generated files from producing huge output
+        "--max-columns=1000",
+        "--max-columns-preview",
         "-e",
         match.rg_pattern(keywords),
         "--",
