@@ -29,7 +29,7 @@ function M.show(todos)
         format = function(item)
             local file_path = vim.fn.fnamemodify(item.file, ":.")
             -- Get the highlight group for this keyword
-            local hl_group = config.options.highlights[item.keyword] or "TodoSignTODO"
+            local hl_group = config.get_lookup()[item.keyword].hl
 
             return {
                 { file_path .. ":", "Comment" },

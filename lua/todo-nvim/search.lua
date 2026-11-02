@@ -9,11 +9,11 @@ end
 
 -- Build ripgrep command to search for TODOs
 function M.build_rg_command()
-    local opts = config.options
+    local opts = config.get()
 
     -- Build keyword pattern with appropriate word boundaries
     local patterns = {}
-    for _, keyword in ipairs(opts.keywords) do
+    for keyword in pairs(config.get_lookup()) do
         local escaped = escape_regex(keyword)
         local pattern = escaped
 
@@ -60,7 +60,7 @@ function M.parse_rg_line(line)
 
     -- Extract which keyword was matched
     local keyword = nil
-    for _, kw in ipairs(config.options.keywords) do
+    for kw in pairs(config.get_lookup()) do
         if text:find(kw, 1, true) then
             keyword = kw
             break

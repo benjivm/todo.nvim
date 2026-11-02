@@ -7,12 +7,8 @@ M.namespace = vim.api.nvim_create_namespace("todo-nvim")
 
 -- Define the todo signs
 function M.define_signs()
-    for keyword, sign_config in pairs(config.options.signs) do
-        local sign_name = "TodoSign_" .. keyword
-        vim.fn.sign_define(sign_name, {
-            text = sign_config.text,
-            texthl = sign_config.texthl,
-        })
+    for word, kw in pairs(config.get_lookup()) do
+        vim.fn.sign_define("TodoSign_" .. word, { text = kw.icon, texthl = kw.hl })
     end
 end
 
@@ -59,7 +55,7 @@ local function search_buffer_todos(bufnr)
     end
 
     for lnum, line in ipairs(lines) do
-        for _, keyword in ipairs(config.options.keywords) do
+        for keyword in pairs(config.get_lookup()) do
             local start_col, end_col = line:find(keyword, 1, true)
             if start_col then
                 -- Check if the keyword is in a comment using treesitter
@@ -112,7 +108,7 @@ function M.refresh_buffer(bufnr)
         if line_text then
             local start_col, end_col = line_text:find(todo.keyword, 1, true)
             if start_col then
-                local hl_group = config.options.highlights[todo.keyword] or "TodoSignTODO"
+                local hl_group = config.get_lookup()[todo.keyword].hl
                 vim.api.nvim_buf_add_highlight(bufnr, M.namespace, hl_group, todo.lnum - 1, start_col - 1, end_col)
             end
         end
