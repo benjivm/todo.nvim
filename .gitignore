@@ -8,3 +8,4 @@ foo.*
 node_modules
 tt.*
 .DS_Store
+/PLAN.md
