@@ -8,11 +8,27 @@ if vim.fn.has("nvim-0.10") == 0 then
     return
 end
 
-vim.api.nvim_create_user_command("TodoPicker", function()
-    require("todo-nvim").show()
-end, {
-    desc = "Show todos in a picker",
-})
+local function list_command(name, fn_name, desc)
+    vim.api.nvim_create_user_command(name, function(cmd)
+        local todo = require("todo-nvim")
+        local keywords, err = todo.parse_keywords(cmd.fargs)
+        if err then
+            vim.notify(err, vim.log.levels.ERROR)
+            return
+        end
+        todo[fn_name]({ keywords = keywords })
+    end, {
+        desc = desc,
+        nargs = "*",
+        complete = function(arglead)
+            return require("todo-nvim").complete_keywords(arglead)
+        end,
+    })
+end
+
+list_command("TodoPicker", "show", "Show todos in a picker")
+list_command("TodoQuickfix", "quickfix", "Put todos in the quickfix list")
+list_command("TodoLocList", "loclist", "Put todos in the location list")
 
 vim.api.nvim_create_user_command("TodoSigns", function(cmd)
     local signs = require("todo-nvim.signs")
